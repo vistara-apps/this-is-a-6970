@@ -7,6 +7,7 @@ export default defineConfig({
     // Optimize build for production
     minify: 'esbuild',
     sourcemap: false,
+    target: 'es2015',
     rollupOptions: {
       output: {
         manualChunks: {
@@ -19,5 +20,9 @@ export default defineConfig({
   // Ensure proper handling of environment variables
   define: {
     'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production')
+  },
+  // Optimize dependencies
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'lucide-react', 'openai']
   }
 })

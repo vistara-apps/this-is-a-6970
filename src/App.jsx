@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Header } from './components/Header'
 import { Sidebar } from './components/Sidebar'
 import { ContentGenerator } from './components/ContentGenerator'
@@ -6,6 +6,7 @@ import { ContentRepurposer } from './components/ContentRepurposer'
 import { Dashboard } from './components/Dashboard'
 import { SubscriptionModal } from './components/SubscriptionModal'
 import { ToastProvider } from './components/ToastProvider'
+import { performHealthCheck, getEnvironmentInfo } from './utils/healthCheck'
 
 function App() {
   const [activeView, setActiveView] = useState('dashboard')
@@ -16,6 +17,16 @@ function App() {
     generationsLimit: 10
   })
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false)
+
+  useEffect(() => {
+    // Perform health check on app initialization
+    performHealthCheck()
+    
+    // Log environment info in development
+    if (import.meta.env.DEV) {
+      console.log('Environment Info:', getEnvironmentInfo())
+    }
+  }, [])
 
   const handleViewChange = (view) => {
     setActiveView(view)
