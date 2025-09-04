@@ -6,7 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "server:dev": "cd server && npm run dev",
+    "server:start": "cd server && npm start",
+    "server:install": "cd server && npm install",
+    "dev:full": "concurrently \"npm run dev\" \"npm run server:dev\"",
+    "install:all": "npm install && npm run server:install"
   },
   "dependencies": {
     "react": "^18.2.0",
@@ -26,6 +31,7 @@
     "autoprefixer": "^10.4.0",
     "postcss": "^8.4.0",
     "tailwindcss": "^3.4.11",
-    "vite": "^5.4.1"
+    "vite": "^5.4.1",
+    "concurrently": "^8.2.2"
   }
 }
