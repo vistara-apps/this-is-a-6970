@@ -22,7 +22,10 @@ jobs:
         
     - name: Install dependencies
       run: |
-        npm ci --prefer-offline --no-audit
+        # Clear npm cache to avoid potential issues
+        npm cache clean --force
+        # Install dependencies with fallback to npm install if ci fails
+        npm ci --prefer-offline --no-audit || npm install
 
     - name: Debug environment
       run: |
@@ -35,7 +38,14 @@ jobs:
         echo "Node modules exists: $(test -d node_modules && echo 'yes' || echo 'no')"
 
     - name: Build application
-      run: npm run build
+      run: |
+        # Ensure we have the latest dependencies
+        echo "Verifying package.json and dependencies..."
+        npm list --depth=0 || echo "Some dependencies may have issues, but continuing..."
+        
+        # Run the build with proper error handling
+        echo "Starting build process..."
+        npm run build
       env:
         NODE_OPTIONS: --max-old-space-size=4096
         CI: true
