@@ -7,12 +7,12 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: "hsl(200, 90%, 50%)",
-        accent: "hsl(40, 90%, 50%)",
-        bg: "hsl(220, 10%, 95%)",
-        surface: "hsl(0, 0%, 100%)",
-        'text-primary': "hsl(220, 20%, 20%)",
-        'text-secondary': "hsl(220, 20%, 40%)",
+        primary: 'hsl(200, 90%, 50%)',
+        accent: 'hsl(40, 90%, 50%)',
+        bg: 'hsl(220, 10%, 95%)',
+        surface: 'hsl(0, 0%, 100%)',
+        'text-primary': 'hsl(220, 20%, 20%)',
+        'text-secondary': 'hsl(220, 20%, 40%)',
       },
       fontSize: {
         'display': ['3rem', { lineHeight: '1.2', fontWeight: '700' }],
