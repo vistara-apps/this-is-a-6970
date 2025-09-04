@@ -36,9 +36,18 @@ jobs:
       env:
         NODE_OPTIONS: --max-old-space-size=4096
         CI: true
+        NODE_ENV: production
+
+    - name: Verify build output
+      run: |
+        echo "Build completed successfully!"
+        echo "Checking dist directory:"
+        ls -la dist/
+        echo "Build artifacts:"
+        find dist -type f -name "*.js" -o -name "*.css" -o -name "*.html" | head -10
         
     - name: Deploy to Vercel (Production)
-      if: ${{ github.ref == 'refs/heads/main' && secrets.VERCEL_TOKEN }}
+      if: github.ref == 'refs/heads/main' && secrets.VERCEL_TOKEN != ''
       uses: amondnet/vercel-action@v25
       with:
         vercel-token: ${{ secrets.VERCEL_TOKEN }}
@@ -47,7 +56,7 @@ jobs:
         vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
         
     - name: Deploy to Vercel (Preview)
-      if: ${{ github.ref != 'refs/heads/main' && secrets.VERCEL_TOKEN }}
+      if: github.ref != 'refs/heads/main' && secrets.VERCEL_TOKEN != ''
       uses: amondnet/vercel-action@v25
       with:
         vercel-token: ${{ secrets.VERCEL_TOKEN }}
@@ -56,7 +65,7 @@ jobs:
         vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
         
     - name: Skip Vercel Deployment (No Token)
-      if: ${{ !secrets.VERCEL_TOKEN }}
+      if: secrets.VERCEL_TOKEN == ''
       run: |
         echo "⚠️ Vercel deployment skipped - VERCEL_TOKEN secret not configured"
         echo "To enable Vercel deployment, add the following secrets to your repository:"
