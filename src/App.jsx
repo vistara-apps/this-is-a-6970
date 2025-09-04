@@ -26,6 +26,11 @@ function App() {
   }
 
   const handleSubscriptionSuccess = (plan) => {
+    if (!plan || typeof plan !== 'string') {
+      console.error('Invalid subscription plan provided')
+      return
+    }
+    
     setUser(prev => ({
       ...prev,
       subscriptionPlan: plan,

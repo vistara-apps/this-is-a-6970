@@ -1,5 +1,6 @@
 import OpenAI from 'openai'
 
+// Initialize OpenAI client with proper error handling
 const openai = new OpenAI({
   apiKey: import.meta.env.VITE_OPENAI_API_KEY || 'demo-key',
   baseURL: "https://openrouter.ai/api/v1",
@@ -17,6 +18,11 @@ const contentPrompts = {
 
 export async function generateContent(prompt, contentType) {
   try {
+    // Validate input parameters
+    if (!prompt || typeof prompt !== 'string') {
+      throw new Error('Invalid prompt provided')
+    }
+
     // For demo purposes, return mock content if no API key
     if (!import.meta.env.VITE_OPENAI_API_KEY || import.meta.env.VITE_OPENAI_API_KEY === 'demo-key') {
       return generateMockContent(prompt, contentType)
@@ -40,9 +46,18 @@ export async function generateContent(prompt, contentType) {
       temperature: 0.7,
     })
 
+    if (!response?.choices?.[0]?.message?.content) {
+      throw new Error('Invalid response from AI service')
+    }
+
     return response.choices[0].message.content.trim()
   } catch (error) {
     console.error('OpenAI API error:', error)
+    // Fallback to mock content on API errors
+    if (error.message.includes('API') || error.message.includes('network')) {
+      console.warn('Falling back to mock content due to API error')
+      return generateMockContent(prompt, contentType)
+    }
     throw new Error('Failed to generate content')
   }
 }
