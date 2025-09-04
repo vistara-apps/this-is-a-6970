@@ -84,22 +84,26 @@ jobs:
       uses: actions/github-script@v7
       with:
         script: |
-          await github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: `✅ **Build Successful!**
-            
-            The Next.js Base Mini App has been built successfully and is ready for deployment.
-            
-            📦 **Build Output:**
-            - Static assets generated in \`dist/\` directory
-            - Optimized for production deployment
-            - All dependencies resolved successfully
-            
-            🚀 **Next Steps:**
-            - The build artifacts are ready for deployment to any static hosting service
-            - Vercel deployment will be attempted if secrets are configured
-            
-            This PR is ready for review and merge!`
-          });
+          try {
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `✅ **Build Successful!**
+              
+              The Next.js Base Mini App has been built successfully and is ready for deployment.
+              
+              📦 **Build Output:**
+              - Static assets generated in \`dist/\` directory
+              - Optimized for production deployment
+              - All dependencies resolved successfully
+              
+              🚀 **Next Steps:**
+              - The build artifacts are ready for deployment to any static hosting service
+              - Ready for manual or automated deployment
+              
+              This PR is ready for review and merge!`
+            });
+          } catch (error) {
+            console.log('Could not create PR comment:', error.message);
+          }

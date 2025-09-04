@@ -3,7 +3,6 @@
  */
 export function performHealthCheck() {
   const checks = {
-    react: typeof React !== 'undefined',
     dom: typeof document !== 'undefined',
     localStorage: typeof localStorage !== 'undefined',
     fetch: typeof fetch !== 'undefined'
