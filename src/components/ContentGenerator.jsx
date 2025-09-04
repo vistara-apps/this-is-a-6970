@@ -1,49 +1,68 @@
 import React, { useState } from 'react'
-import { Sparkles, Copy, Download, Wand2, FileText, Hash, MessageSquare } from 'lucide-react'
+import { Wand2, Copy, Download, Loader, AlertCircle } from 'lucide-react'
 import { generateContent } from '../services/openai'
+import { useToast } from './ToastProvider'
 
-const ContentGenerator = ({ user, setUser }) => {
+const contentTypes = [
+  { value: 'social-post', label: 'Social Media Post' },
+  { value: 'blog-outline', label: 'Blog Article Outline' },
+  { value: 'email-subject', label: 'Email Subject Lines' },
+  { value: 'product-description', label: 'Product Description' },
+  { value: 'video-script', label: 'Video Script' },
+  { value: 'ad-copy', label: 'Ad Copy' },
+]
+
+export function ContentGenerator({ user, setUser, onUpgrade }) {
   const [prompt, setPrompt] = useState('')
-  const [contentType, setContentType] = useState('social-media')
+  const [contentType, setContentType] = useState('social-post')
   const [generatedContent, setGeneratedContent] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
-  const [error, setError] = useState('')
+  const { showToast } = useToast()
 
-  const contentTypes = [
-    { id: 'social-media', label: 'Social Media Post', icon: Hash },
-    { id: 'article', label: 'Article Outline', icon: FileText },
-    { id: 'email', label: 'Email Newsletter', icon: MessageSquare },
-    { id: 'blog', label: 'Blog Post', icon: Wand2 }
-  ]
+  const canGenerate = user.subscriptionPlan === 'pro' || user.generationsUsed < user.generationsLimit
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
-      setError('Please enter a prompt')
+      showToast('Please enter a prompt', 'error')
       return
     }
 
-    if (user.contentGenerations >= user.maxGenerations && user.maxGenerations !== Infinity) {
-      setError('You have reached your monthly generation limit. Please upgrade to continue.')
+    if (!canGenerate) {
+      showToast('Generation limit reached. Please upgrade to continue.', 'error')
+      onUpgrade()
       return
     }
 
     setIsGenerating(true)
-    setError('')
     
     try {
       const content = await generateContent(prompt, contentType)
       setGeneratedContent(content)
-      setUser(prev => ({ ...prev, contentGenerations: prev.contentGenerations + 1 }))
+      
+      // Update user usage
+      if (user.subscriptionPlan !== 'pro') {
+        setUser(prev => ({
+          ...prev,
+          generationsUsed: prev.generationsUsed + 1
+        }))
+      }
+      
+      showToast('Content generated successfully!', 'success')
     } catch (error) {
-      console.error('Generation failed:', error)
-      setError('Failed to generate content. Please try again.')
+      showToast('Failed to generate content. Please try again.', 'error')
+      console.error('Generation error:', error)
     } finally {
       setIsGenerating(false)
     }
   }
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(generatedContent)
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(generatedContent)
+      showToast('Content copied to clipboard!', 'success')
+    } catch (error) {
+      showToast('Failed to copy content', 'error')
+    }
   }
 
   const handleDownload = () => {
@@ -52,121 +71,149 @@ const ContentGenerator = ({ user, setUser }) => {
     const a = document.createElement('a')
     a.href = url
     a.download = `generated-content-${Date.now()}.txt`
+    document.body.appendChild(a)
     a.click()
+    document.body.removeChild(a)
     URL.revokeObjectURL(url)
+    showToast('Content downloaded!', 'success')
   }
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      <div className="bg-surface rounded-lg p-6 sm:p-8 shadow-card">
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-600 rounded-lg flex items-center justify-center">
-            <Sparkles size={20} className="text-white" />
-          </div>
-          <h2 className="text-heading text-text-primary">AI Content Generator</h2>
-        </div>
-
-        {/* Content Type Selection */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-text-primary mb-3">Content Type</label>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {contentTypes.map((type) => {
-              const Icon = type.icon
-              return (
-                <button
-                  key={type.id}
-                  onClick={() => setContentType(type.id)}
-                  className={`
-                    flex flex-col items-center p-3 rounded-lg border-2 transition-all
-                    ${contentType === type.id 
-                      ? 'border-primary bg-primary/10 text-primary' 
-                      : 'border-gray-200 hover:border-gray-300 text-text-secondary'
-                    }
-                  `}
-                >
-                  <Icon size={20} className="mb-2" />
-                  <span className="text-xs font-medium text-center">{type.label}</span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Prompt Input */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-text-primary mb-2">
-            Describe what you want to create
-          </label>
-          <textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="e.g., Write a social media post about the benefits of morning meditation for productivity..."
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
-            rows={4}
-          />
-        </div>
-
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-            {error}
-          </div>
-        )}
-
-        {/* Generate Button */}
-        <button
-          onClick={handleGenerate}
-          disabled={isGenerating || !prompt.trim()}
-          className="w-full bg-gradient-to-r from-purple-500 to-blue-600 text-white py-3 px-6 rounded-lg hover:from-purple-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center space-x-2"
-        >
-          {isGenerating ? (
-            <>
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              <span>Generating...</span>
-            </>
-          ) : (
-            <>
-              <Sparkles size={16} />
-              <span>Generate Content</span>
-            </>
-          )}
-        </button>
-
-        {/* Usage Info */}
-        <div className="mt-4 text-center text-sm text-text-secondary">
-          {user.contentGenerations} / {user.maxGenerations === Infinity ? '∞' : user.maxGenerations} generations used this month
-        </div>
+    <div className="max-w-4xl mx-auto space-y-8">
+      {/* Header */}
+      <div className="text-center sm:text-left">
+        <h1 className="text-display text-text-primary mb-4">AI Content Generator</h1>
+        <p className="text-body text-text-secondary">
+          Transform your ideas into compelling content with AI assistance.
+        </p>
       </div>
 
-      {/* Generated Content */}
-      {generatedContent && (
-        <div className="bg-surface rounded-lg p-6 sm:p-8 shadow-card animate-fade-in">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
-            <h3 className="text-heading text-text-primary mb-2 sm:mb-0">Generated Content</h3>
-            <div className="flex space-x-2">
-              <button
-                onClick={handleCopy}
-                className="flex items-center space-x-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                <Copy size={16} />
-                <span className="text-sm">Copy</span>
-              </button>
-              <button
-                onClick={handleDownload}
-                className="flex items-center space-x-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                <Download size={16} />
-                <span className="text-sm">Download</span>
-              </button>
+      {/* Usage Warning */}
+      {!canGenerate && (
+        <div className="card bg-red-50 border border-red-200">
+          <div className="flex items-center space-x-3">
+            <AlertCircle size={20} className="text-red-500" />
+            <div>
+              <h3 className="text-sm font-medium text-red-800">Generation Limit Reached</h3>
+              <p className="text-sm text-red-600">
+                You've used all {user.generationsLimit} generations for this month. Upgrade to Pro for unlimited access.
+              </p>
             </div>
-          </div>
-          
-          <div className="bg-gray-50 rounded-lg p-4 whitespace-pre-wrap text-text-primary leading-relaxed">
-            {generatedContent}
+            <button onClick={onUpgrade} className="btn-primary ml-auto">
+              Upgrade Now
+            </button>
           </div>
         </div>
       )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Input Section */}
+        <div className="space-y-6">
+          <div className="card">
+            <h3 className="text-heading text-text-primary mb-4">Content Details</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-2">
+                  Content Type
+                </label>
+                <select
+                  value={contentType}
+                  onChange={(e) => setContentType(e.target.value)}
+                  className="input-base"
+                >
+                  {contentTypes.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-2">
+                  Prompt or Topic
+                </label>
+                <textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="Describe what you want to create. Be specific about tone, audience, and key points..."
+                  className="input-base h-32 resize-none"
+                  disabled={isGenerating}
+                />
+              </div>
+
+              <button
+                onClick={handleGenerate}
+                disabled={isGenerating || !canGenerate}
+                className="btn-primary w-full flex items-center justify-center space-x-2"
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader size={20} className="animate-spin" />
+                    <span>Generating...</span>
+                  </>
+                ) : (
+                  <>
+                    <Wand2 size={20} />
+                    <span>Generate Content</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Output Section */}
+        <div className="space-y-6">
+          <div className="card">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-heading text-text-primary">Generated Content</h3>
+              {generatedContent && (
+                <div className="flex space-x-2">
+                  <button
+                    onClick={handleCopy}
+                    className="p-2 text-text-secondary hover:text-text-primary hover:bg-gray-100 rounded-md transition-colors"
+                    title="Copy to clipboard"
+                  >
+                    <Copy size={16} />
+                  </button>
+                  <button
+                    onClick={handleDownload}
+                    className="p-2 text-text-secondary hover:text-text-primary hover:bg-gray-100 rounded-md transition-colors"
+                    title="Download as text file"
+                  >
+                    <Download size={16} />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="min-h-64 p-4 bg-gray-50 rounded-md border">
+              {isGenerating ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <Loader size={32} className="animate-spin text-primary mb-4 mx-auto" />
+                    <p className="text-text-secondary">Generating your content...</p>
+                  </div>
+                </div>
+              ) : generatedContent ? (
+                <div className="whitespace-pre-wrap text-body text-text-primary">
+                  {generatedContent}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-text-secondary text-center">
+                    Your generated content will appear here.
+                    <br />
+                    Enter a prompt and click generate to start.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
-
-export default ContentGenerator

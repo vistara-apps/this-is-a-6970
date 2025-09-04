@@ -1,56 +1,52 @@
 import React from 'react'
-import { LayoutDashboard, Sparkles, Video, FileText } from 'lucide-react'
+import { Home, Wand2, Scissors, BarChart3, Settings } from 'lucide-react'
+import { clsx } from 'clsx'
 
-const Sidebar = ({ activeTab, setActiveTab, sidebarOpen, setSidebarOpen }) => {
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'generate', label: 'Generate Content', icon: Sparkles },
-    { id: 'repurpose', label: 'Repurpose Content', icon: Video },
-  ]
+const menuItems = [
+  { id: 'dashboard', label: 'Dashboard', icon: Home },
+  { id: 'generator', label: 'Generate Content', icon: Wand2 },
+  { id: 'repurposer', label: 'Repurpose Content', icon: Scissors },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+  { id: 'settings', label: 'Settings', icon: Settings },
+]
 
+export function Sidebar({ activeView, onViewChange }) {
   return (
-    <>
-      {/* Mobile overlay */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+    <aside className="w-16 sm:w-64 bg-surface border-r border-gray-200 flex flex-col">
+      <div className="p-4 sm:p-6">
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
+            <Wand2 size={16} className="text-white" />
+          </div>
+          <span className="hidden sm:block text-heading text-text-primary">ContentSpark</span>
+        </div>
+      </div>
       
-      {/* Sidebar */}
-      <aside className={`
-        fixed top-16 left-0 w-64 h-[calc(100vh-4rem)] bg-surface border-r border-gray-200 transform transition-transform duration-200 ease-in-out z-50
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        lg:translate-x-0 lg:static lg:z-auto
-      `}>
-        <nav className="p-4 space-y-2">
+      <nav className="flex-1 px-2 sm:px-4">
+        <ul className="space-y-2">
           {menuItems.map((item) => {
             const Icon = item.icon
+            const isActive = activeView === item.id
+            
             return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setActiveTab(item.id)
-                  setSidebarOpen(false)
-                }}
-                className={`
-                  w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors
-                  ${activeTab === item.id 
-                    ? 'bg-gradient-to-r from-purple-500 to-blue-600 text-white' 
-                    : 'text-text-secondary hover:bg-gray-100'
-                  }
-                `}
-              >
-                <Icon size={20} />
-                <span>{item.label}</span>
-              </button>
+              <li key={item.id}>
+                <button
+                  onClick={() => onViewChange(item.id)}
+                  className={clsx(
+                    'w-full flex items-center space-x-3 px-3 py-3 rounded-md transition-colors duration-200',
+                    isActive 
+                      ? 'bg-primary text-white' 
+                      : 'text-text-secondary hover:bg-gray-100 hover:text-text-primary'
+                  )}
+                >
+                  <Icon size={20} />
+                  <span className="hidden sm:block text-sm font-medium">{item.label}</span>
+                </button>
+              </li>
             )
           })}
-        </nav>
-      </aside>
-    </>
+        </ul>
+      </nav>
+    </aside>
   )
 }
-
-export default Sidebar

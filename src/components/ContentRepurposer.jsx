@@ -1,266 +1,361 @@
 import React, { useState } from 'react'
-import { Video, Upload, Download, Scissors, FileText, Clock } from 'lucide-react'
+import { Upload, Link, Scissors, Download, Loader, AlertCircle, Play } from 'lucide-react'
+import { useToast } from './ToastProvider'
 
-const ContentRepurposer = ({ user, setUser }) => {
-  const [selectedFile, setSelectedFile] = useState(null)
-  const [urlInput, setUrlInput] = useState('')
+const outputFormats = [
+  { value: 'short-clips', label: 'Short Video Clips (30-60s)' },
+  { value: 'highlights', label: 'Key Highlights' },
+  { value: 'transcript', label: 'Formatted Transcript' },
+  { value: 'social-posts', label: 'Social Media Posts' },
+  { value: 'quotes', label: 'Quote Cards' },
+]
+
+export function ContentRepurposer({ user, setUser, onUpgrade }) {
+  const [inputType, setInputType] = useState('upload')
+  const [file, setFile] = useState(null)
+  const [url, setUrl] = useState('')
   const [outputFormat, setOutputFormat] = useState('short-clips')
   const [isProcessing, setIsProcessing] = useState(false)
-  const [processedContent, setProcessedContent] = useState(null)
-  const [error, setError] = useState('')
+  const [repurposedContent, setRepurposedContent] = useState(null)
+  const { showToast } = useToast()
 
-  const outputFormats = [
-    { id: 'short-clips', label: 'Short Video Clips', icon: Scissors },
-    { id: 'transcript', label: 'Text Transcript', icon: FileText },
-    { id: 'highlights', label: 'Key Highlights', icon: Clock }
-  ]
+  const canRepurpose = user.subscriptionPlan === 'pro' || user.generationsUsed < user.generationsLimit
 
-  const handleFileSelect = (event) => {
-    const file = event.target.files[0]
-    if (file) {
-      if (file.size > 100 * 1024 * 1024) { // 100MB limit
-        setError('File size must be less than 100MB')
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0]
+    if (selectedFile) {
+      if (selectedFile.size > 100 * 1024 * 1024) { // 100MB limit
+        showToast('File size must be less than 100MB', 'error')
         return
       }
-      setSelectedFile(file)
-      setUrlInput('')
-      setError('')
+      setFile(selectedFile)
+      showToast('File uploaded successfully!', 'success')
     }
   }
 
-  const handleUrlChange = (event) => {
-    setUrlInput(event.target.value)
-    setSelectedFile(null)
-    setError('')
-  }
-
-  const handleProcess = async () => {
-    if (!selectedFile && !urlInput.trim()) {
-      setError('Please select a file or enter a URL')
+  const handleRepurpose = async () => {
+    if (!canRepurpose) {
+      showToast('Generation limit reached. Please upgrade to continue.', 'error')
+      onUpgrade()
       return
     }
 
-    if (user.contentGenerations >= user.maxGenerations && user.maxGenerations !== Infinity) {
-      setError('You have reached your monthly generation limit. Please upgrade to continue.')
+    if (inputType === 'upload' && !file) {
+      showToast('Please upload a file', 'error')
+      return
+    }
+
+    if (inputType === 'url' && !url.trim()) {
+      showToast('Please enter a URL', 'error')
       return
     }
 
     setIsProcessing(true)
-    setError('')
 
     try {
-      // Simulate processing (in real app, this would call a backend service)
+      // Simulate processing time
       await new Promise(resolve => setTimeout(resolve, 3000))
-      
-      const mockResults = {
-        'short-clips': [
-          { title: 'Key Insight #1', duration: '0:15', timestamp: '2:30-2:45' },
-          { title: 'Main Point Discussion', duration: '0:30', timestamp: '5:15-5:45' },
-          { title: 'Conclusion Summary', duration: '0:20', timestamp: '8:10-8:30' }
-        ],
-        'transcript': 'This is a sample transcript of the processed content. In a real implementation, this would contain the full transcript extracted from the video or audio content.',
-        'highlights': [
-          'Key insight about content creation strategies',
-          'Important statistics mentioned at 3:45',
-          'Call to action discussed in the conclusion'
-        ]
+
+      // Mock repurposed content based on format
+      const mockContent = generateMockContent(outputFormat)
+      setRepurposedContent(mockContent)
+
+      // Update user usage
+      if (user.subscriptionPlan !== 'pro') {
+        setUser(prev => ({
+          ...prev,
+          generationsUsed: prev.generationsUsed + 1
+        }))
       }
 
-      setProcessedContent(mockResults[outputFormat])
-      setUser(prev => ({ ...prev, contentGenerations: prev.contentGenerations + 1 }))
+      showToast('Content repurposed successfully!', 'success')
     } catch (error) {
-      console.error('Processing failed:', error)
-      setError('Failed to process content. Please try again.')
+      showToast('Failed to repurpose content. Please try again.', 'error')
     } finally {
       setIsProcessing(false)
     }
   }
 
-  const handleDownload = () => {
-    let content = ''
-    let filename = ''
-
-    if (outputFormat === 'short-clips') {
-      content = processedContent.map(clip => 
-        `${clip.title}\nDuration: ${clip.duration}\nTimestamp: ${clip.timestamp}\n\n`
-      ).join('')
-      filename = 'short-clips.txt'
-    } else if (outputFormat === 'transcript') {
-      content = processedContent
-      filename = 'transcript.txt'
-    } else if (outputFormat === 'highlights') {
-      content = processedContent.map((highlight, index) => 
-        `${index + 1}. ${highlight}`
-      ).join('\n')
-      filename = 'highlights.txt'
+  const generateMockContent = (format) => {
+    switch (format) {
+      case 'short-clips':
+        return {
+          type: 'clips',
+          data: [
+            { title: 'Clip 1: Key Insight', duration: '45s', timestamp: '2:15-3:00' },
+            { title: 'Clip 2: Main Point', duration: '32s', timestamp: '5:30-6:02' },
+            { title: 'Clip 3: Call to Action', duration: '28s', timestamp: '8:45-9:13' },
+          ]
+        }
+      case 'highlights':
+        return {
+          type: 'highlights',
+          data: [
+            'The most important insight was about the future of AI in content creation',
+            'Statistics show 80% improvement in productivity when using AI tools',
+            'Three key strategies for implementing AI in your workflow',
+            'Common mistakes to avoid when starting with AI content generation',
+          ]
+        }
+      case 'social-posts':
+        return {
+          type: 'posts',
+          data: [
+            '🚀 Just learned something amazing about AI content creation! The future is here and it\'s incredible. #AI #Content',
+            '💡 Did you know that AI can improve your content productivity by 80%? Game-changing stuff! #ProductivityTips',
+            '🎯 Three strategies that will transform how you create content. Thread below 👇 #ContentStrategy',
+          ]
+        }
+      default:
+        return {
+          type: 'text',
+          data: 'This is a sample repurposed content output. In a real implementation, this would contain the processed content based on your input and selected format.'
+        }
     }
+  }
 
-    const blob = new Blob([content], { type: 'text/plain' })
+  const handleDownload = () => {
+    const content = JSON.stringify(repurposedContent, null, 2)
+    const blob = new Blob([content], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = filename
+    a.download = `repurposed-content-${Date.now()}.json`
+    document.body.appendChild(a)
     a.click()
+    document.body.removeChild(a)
     URL.revokeObjectURL(url)
+    showToast('Content downloaded!', 'success')
   }
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      <div className="bg-surface rounded-lg p-6 sm:p-8 shadow-card">
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg flex items-center justify-center">
-            <Video size={20} className="text-white" />
-          </div>
-          <h2 className="text-heading text-text-primary">Content Repurposer</h2>
-        </div>
-
-        {/* Input Method */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-text-primary mb-3">Input Source</label>
-          
-          {/* File Upload */}
-          <div className="mb-4">
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-              <Upload size={32} className="mx-auto mb-3 text-gray-400" />
-              <p className="text-text-secondary mb-2">Upload a video or audio file</p>
-              <p className="text-sm text-gray-500 mb-3">MP4, MP3, WAV (max 100MB)</p>
-              <input
-                type="file"
-                accept="video/*,audio/*"
-                onChange={handleFileSelect}
-                className="hidden"
-                id="file-upload"
-              />
-              <label
-                htmlFor="file-upload"
-                className="inline-flex items-center px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 cursor-pointer transition-colors"
-              >
-                Choose File
-              </label>
-              {selectedFile && (
-                <p className="mt-2 text-sm text-text-primary">{selectedFile.name}</p>
-              )}
-            </div>
-          </div>
-
-          {/* URL Input */}
-          <div className="relative">
-            <input
-              type="url"
-              value={urlInput}
-              onChange={handleUrlChange}
-              placeholder="Or paste a YouTube/video URL..."
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-            />
-          </div>
-        </div>
-
-        {/* Output Format Selection */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-text-primary mb-3">Output Format</label>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {outputFormats.map((format) => {
-              const Icon = format.icon
-              return (
-                <button
-                  key={format.id}
-                  onClick={() => setOutputFormat(format.id)}
-                  className={`
-                    flex items-center space-x-3 p-3 rounded-lg border-2 transition-all
-                    ${outputFormat === format.id 
-                      ? 'border-primary bg-primary/10 text-primary' 
-                      : 'border-gray-200 hover:border-gray-300 text-text-secondary'
-                    }
-                  `}
-                >
-                  <Icon size={20} />
-                  <span className="font-medium">{format.label}</span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-            {error}
-          </div>
-        )}
-
-        {/* Process Button */}
-        <button
-          onClick={handleProcess}
-          disabled={isProcessing || (!selectedFile && !urlInput.trim())}
-          className="w-full bg-gradient-to-r from-blue-500 to-cyan-600 text-white py-3 px-6 rounded-lg hover:from-blue-600 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center space-x-2"
-        >
-          {isProcessing ? (
-            <>
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              <span>Processing...</span>
-            </>
-          ) : (
-            <>
-              <Scissors size={16} />
-              <span>Process Content</span>
-            </>
-          )}
-        </button>
-
-        {/* Usage Info */}
-        <div className="mt-4 text-center text-sm text-text-secondary">
-          {user.contentGenerations} / {user.maxGenerations === Infinity ? '∞' : user.maxGenerations} generations used this month
-        </div>
+    <div className="max-w-4xl mx-auto space-y-8">
+      {/* Header */}
+      <div className="text-center sm:text-left">
+        <h1 className="text-display text-text-primary mb-4">Content Repurposer</h1>
+        <p className="text-body text-text-secondary">
+          Transform your long-form content into engaging short-form clips and posts.
+        </p>
       </div>
 
-      {/* Processed Content Results */}
-      {processedContent && (
-        <div className="bg-surface rounded-lg p-6 sm:p-8 shadow-card animate-fade-in">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
-            <h3 className="text-heading text-text-primary mb-2 sm:mb-0">Processed Results</h3>
-            <button
-              onClick={handleDownload}
-              className="flex items-center space-x-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-            >
-              <Download size={16} />
-              <span className="text-sm">Download</span>
+      {/* Usage Warning */}
+      {!canRepurpose && (
+        <div className="card bg-red-50 border border-red-200">
+          <div className="flex items-center space-x-3">
+            <AlertCircle size={20} className="text-red-500" />
+            <div>
+              <h3 className="text-sm font-medium text-red-800">Generation Limit Reached</h3>
+              <p className="text-sm text-red-600">
+                You've used all {user.generationsLimit} generations for this month. Upgrade to Pro for unlimited access.
+              </p>
+            </div>
+            <button onClick={onUpgrade} className="btn-primary ml-auto">
+              Upgrade Now
             </button>
-          </div>
-
-          <div className="space-y-4">
-            {outputFormat === 'short-clips' && Array.isArray(processedContent) && (
-              <div className="space-y-3">
-                {processedContent.map((clip, index) => (
-                  <div key={index} className="bg-gray-50 rounded-lg p-4">
-                    <h4 className="font-medium text-text-primary mb-1">{clip.title}</h4>
-                    <div className="flex items-center space-x-4 text-sm text-text-secondary">
-                      <span>Duration: {clip.duration}</span>
-                      <span>Timestamp: {clip.timestamp}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {outputFormat === 'transcript' && typeof processedContent === 'string' && (
-              <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-text-primary leading-relaxed">{processedContent}</p>
-              </div>
-            )}
-
-            {outputFormat === 'highlights' && Array.isArray(processedContent) && (
-              <div className="space-y-2">
-                {processedContent.map((highlight, index) => (
-                  <div key={index} className="bg-gray-50 rounded-lg p-3">
-                    <p className="text-text-primary">{index + 1}. {highlight}</p>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Input Section */}
+        <div className="space-y-6">
+          <div className="card">
+            <h3 className="text-heading text-text-primary mb-4">Source Content</h3>
+            
+            <div className="space-y-4">
+              {/* Input Type Selection */}
+              <div className="flex space-x-4">
+                <button
+                  onClick={() => setInputType('upload')}
+                  className={`flex-1 py-3 px-4 rounded-md border text-sm font-medium transition-colors ${
+                    inputType === 'upload'
+                      ? 'bg-primary text-white border-primary'
+                      : 'bg-surface text-text-secondary border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <Upload size={16} className="mr-2 inline" />
+                  Upload File
+                </button>
+                <button
+                  onClick={() => setInputType('url')}
+                  className={`flex-1 py-3 px-4 rounded-md border text-sm font-medium transition-colors ${
+                    inputType === 'url'
+                      ? 'bg-primary text-white border-primary'
+                      : 'bg-surface text-text-secondary border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <Link size={16} className="mr-2 inline" />
+                  From URL
+                </button>
+              </div>
+
+              {/* File Upload */}
+              {inputType === 'upload' && (
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-2">
+                    Upload Video or Audio File
+                  </label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center hover:border-primary transition-colors">
+                    <input
+                      type="file"
+                      accept="video/*,audio/*"
+                      onChange={handleFileChange}
+                      className="hidden"
+                      id="file-upload"
+                    />
+                    <label htmlFor="file-upload" className="cursor-pointer">
+                      <Upload size={32} className="mx-auto text-gray-400 mb-2" />
+                      <p className="text-sm text-text-secondary">
+                        {file ? file.name : 'Click to upload or drag and drop'}
+                      </p>
+                      <p className="text-xs text-text-secondary mt-1">
+                        MP4, MOV, MP3, WAV (max 100MB)
+                      </p>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* URL Input */}
+              {inputType === 'url' && (
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-2">
+                    Content URL
+                  </label>
+                  <input
+                    type="url"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    placeholder="https://youtube.com/watch?v=..."
+                    className="input-base"
+                  />
+                  <p className="text-xs text-text-secondary mt-1">
+                    Supports YouTube, Vimeo, podcast links, and more
+                  </p>
+                </div>
+              )}
+
+              {/* Output Format */}
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-2">
+                  Output Format
+                </label>
+                <select
+                  value={outputFormat}
+                  onChange={(e) => setOutputFormat(e.target.value)}
+                  className="input-base"
+                >
+                  {outputFormats.map((format) => (
+                    <option key={format.value} value={format.value}>
+                      {format.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                onClick={handleRepurpose}
+                disabled={isProcessing || !canRepurpose}
+                className="btn-primary w-full flex items-center justify-center space-x-2"
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader size={20} className="animate-spin" />
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Scissors size={20} />
+                    <span>Repurpose Content</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Output Section */}
+        <div className="space-y-6">
+          <div className="card">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-heading text-text-primary">Repurposed Content</h3>
+              {repurposedContent && (
+                <button
+                  onClick={handleDownload}
+                  className="p-2 text-text-secondary hover:text-text-primary hover:bg-gray-100 rounded-md transition-colors"
+                  title="Download content"
+                >
+                  <Download size={16} />
+                </button>
+              )}
+            </div>
+
+            <div className="min-h-64 p-4 bg-gray-50 rounded-md border">
+              {isProcessing ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <Loader size={32} className="animate-spin text-primary mb-4 mx-auto" />
+                    <p className="text-text-secondary">Processing your content...</p>
+                    <p className="text-xs text-text-secondary mt-2">This may take a few minutes</p>
+                  </div>
+                </div>
+              ) : repurposedContent ? (
+                <div className="space-y-4">
+                  {repurposedContent.type === 'clips' && (
+                    <div className="space-y-3">
+                      {repurposedContent.data.map((clip, index) => (
+                        <div key={index} className="bg-surface p-4 rounded-md border">
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="font-medium text-text-primary">{clip.title}</h4>
+                            <Play size={16} className="text-primary" />
+                          </div>
+                          <p className="text-sm text-text-secondary">
+                            Duration: {clip.duration} | Timestamp: {clip.timestamp}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {repurposedContent.type === 'highlights' && (
+                    <div className="space-y-3">
+                      {repurposedContent.data.map((highlight, index) => (
+                        <div key={index} className="bg-surface p-4 rounded-md border">
+                          <p className="text-body text-text-primary">{highlight}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {repurposedContent.type === 'posts' && (
+                    <div className="space-y-3">
+                      {repurposedContent.data.map((post, index) => (
+                        <div key={index} className="bg-surface p-4 rounded-md border">
+                          <p className="text-body text-text-primary">{post}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {repurposedContent.type === 'text' && (
+                    <div className="bg-surface p-4 rounded-md border">
+                      <p className="text-body text-text-primary">{repurposedContent.data}</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-text-secondary text-center">
+                    Your repurposed content will appear here.
+                    <br />
+                    Upload a file or enter a URL to start.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
-
-export default ContentRepurposer

@@ -1,159 +1,160 @@
 import OpenAI from 'openai'
 
-// Initialize OpenAI client
 const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY || 'your-api-key-here',
+  apiKey: import.meta.env.VITE_OPENAI_API_KEY || 'demo-key',
   baseURL: "https://openrouter.ai/api/v1",
   dangerouslyAllowBrowser: true,
 })
 
 const contentPrompts = {
-  'social-media': (prompt) => `Create an engaging social media post about: ${prompt}. Make it concise, compelling, and include relevant hashtags.`,
-  'article': (prompt) => `Create a detailed article outline about: ${prompt}. Include main sections, key points, and a compelling introduction and conclusion.`,
-  'email': (prompt) => `Write an engaging email newsletter about: ${prompt}. Include a catchy subject line, compelling content, and clear call-to-action.`,
-  'blog': (prompt) => `Write a comprehensive blog post about: ${prompt}. Make it informative, engaging, and SEO-friendly with proper structure.`
+  'social-post': (topic) => `Create an engaging social media post about ${topic}. Make it catchy, include relevant hashtags, and keep it under 280 characters.`,
+  'blog-outline': (topic) => `Create a detailed blog post outline about ${topic}. Include an introduction, 3-5 main points with subpoints, and a conclusion.`,
+  'email-subject': (topic) => `Generate 5 compelling email subject lines about ${topic}. Make them attention-grabbing and action-oriented.`,
+  'product-description': (topic) => `Write a compelling product description for ${topic}. Focus on benefits, features, and include a call to action.`,
+  'video-script': (topic) => `Create a 2-3 minute video script about ${topic}. Include hook, main content, and call to action. Format with timestamps.`,
+  'ad-copy': (topic) => `Write persuasive ad copy for ${topic}. Include headline, body text, and call to action. Focus on benefits and urgency.`,
 }
 
-export const generateContent = async (prompt, contentType) => {
+export async function generateContent(prompt, contentType) {
   try {
-    const systemPrompt = contentPrompts[contentType](prompt)
+    // For demo purposes, return mock content if no API key
+    if (!import.meta.env.VITE_OPENAI_API_KEY || import.meta.env.VITE_OPENAI_API_KEY === 'demo-key') {
+      return generateMockContent(prompt, contentType)
+    }
+
+    const systemPrompt = contentPrompts[contentType] || contentPrompts['social-post']
     
-    const completion = await openai.chat.completions.create({
-      model: "google/gemini-2.0-flash-001",
+    const response = await openai.chat.completions.create({
+      model: 'google/gemini-2.0-flash-001',
       messages: [
         {
-          role: "system",
-          content: "You are a creative content writer who creates engaging, high-quality content for various purposes. Always provide well-structured, original content that matches the requested format."
+          role: 'system',
+          content: 'You are a professional content creator and copywriter. Create engaging, high-quality content that resonates with the target audience.'
         },
         {
-          role: "user",
-          content: systemPrompt
+          role: 'user',
+          content: systemPrompt(prompt)
         }
       ],
       max_tokens: 1000,
       temperature: 0.7,
     })
 
-    return completion.choices[0].message.content
+    return response.choices[0].message.content.trim()
   } catch (error) {
     console.error('OpenAI API error:', error)
-    
-    // Fallback content for demo purposes
-    const fallbackContent = {
-      'social-media': `🚀 Exciting insights about ${prompt}! 
+    throw new Error('Failed to generate content')
+  }
+}
 
-This is a game-changer for anyone looking to improve their approach. Here's what you need to know:
+function generateMockContent(prompt, contentType) {
+  const mockContent = {
+    'social-post': `🚀 Exciting news about ${prompt}! This could be a game-changer for creators everywhere. The future of content is here and it's incredible! 
 
-✨ Key benefits that matter
-💡 Practical tips you can use today
-🎯 Results that speak for themselves
+What do you think? Drop your thoughts below 👇
 
-What's your experience with this? Share in the comments! 👇
+#ContentCreation #AI #Innovation #FutureIsNow`,
 
-#ContentCreation #Innovation #Growth #Success`,
-
-      'article': `# ${prompt}: A Comprehensive Guide
+    'blog-outline': `# ${prompt}: A Comprehensive Guide
 
 ## Introduction
-Understanding ${prompt} is crucial in today's digital landscape...
+- Hook: Why ${prompt} matters now more than ever
+- Overview of what readers will learn
+- Brief statistics or compelling facts
 
-## Main Sections
+## Main Content
 
-### 1. Foundation Concepts
-- Core principles and definitions
-- Historical context and evolution
-- Current industry standards
+### 1. Understanding the Basics
+- Definition and core concepts
+- Current landscape and trends
+- Key players and technologies
 
-### 2. Practical Applications
-- Real-world use cases
-- Implementation strategies
-- Common challenges and solutions
+### 2. Benefits and Opportunities
+- Primary advantages for users
+- Market opportunities
+- Success stories and case studies
 
-### 3. Best Practices
-- Expert recommendations
-- Proven methodologies
-- Tools and resources
+### 3. Implementation Strategies
+- Step-by-step approach
+- Best practices and tips
+- Common pitfalls to avoid
 
 ### 4. Future Outlook
 - Emerging trends
 - Predictions and forecasts
-- Preparation strategies
+- Preparing for what's next
 
 ## Conclusion
-By implementing these insights about ${prompt}, you'll be well-positioned to...`,
+- Key takeaways
+- Action steps for readers
+- Call to action for engagement`,
 
-      'email': `Subject: Transform Your Approach to ${prompt} 🎯
+    'email-subject': `Here are 5 compelling email subject lines about ${prompt}:
 
-Hi there!
+1. 🚨 This ${prompt} breakthrough changes everything
+2. The ${prompt} secret successful creators don't want you to know
+3. Why ${prompt} is the #1 priority for 2024 (inside details)
+4. [URGENT] ${prompt} opportunity ends in 24 hours
+5. The simple ${prompt} hack that saves 10 hours per week`,
 
-Hope you're having a fantastic week! I wanted to share some exciting insights about ${prompt} that could revolutionize how you think about this topic.
+    'product-description': `Transform Your ${prompt} Experience Forever
 
-Here's what I've discovered:
+Discover the revolutionary solution that's changing how people approach ${prompt}. Our cutting-edge platform combines innovative technology with user-friendly design to deliver results that exceed expectations.
 
-🔍 The Problem: Many people struggle with understanding ${prompt} effectively.
+✅ Key Features:
+• Advanced AI-powered capabilities
+• Intuitive interface designed for all skill levels
+• Real-time results and feedback
+• Seamless integration with existing workflows
 
-💡 The Solution: A strategic approach that focuses on practical implementation.
+✅ Benefits:
+• Save 80% of your time on ${prompt}
+• Achieve professional-quality results instantly
+• Scale your output without compromising quality
+• Join thousands of satisfied customers
 
-✅ Key Benefits:
-- Improved efficiency and results
-- Better understanding of core concepts
-- Actionable insights you can use immediately
+Don't let another day pass struggling with outdated methods. Upgrade your ${prompt} game today and see the difference quality tools make.
 
-Ready to dive deeper? Click here to learn more about maximizing your ${prompt} strategy.
+🎯 Ready to get started? Click below for instant access!`,
 
-Best regards,
-Your Content Team`,
+    'video-script': `🎬 Video Script: ${prompt}
 
-      'blog': `# The Ultimate Guide to ${prompt}: Everything You Need to Know
+[0:00-0:15] HOOK
+"What if I told you that ${prompt} could change your entire approach to content creation? Stay tuned because I'm about to share something that will blow your mind."
 
-## Introduction
+[0:15-0:45] PROBLEM
+"Here's the thing - most people struggle with ${prompt} because they're using outdated methods. They waste hours on tasks that should take minutes, and the results are often disappointing."
 
-In today's fast-paced digital world, understanding ${prompt} has become more important than ever. Whether you're a beginner or looking to enhance your existing knowledge, this comprehensive guide will provide you with actionable insights and practical strategies.
+[0:45-1:30] SOLUTION
+"But there's a better way. Let me introduce you to the game-changing approach that's revolutionizing ${prompt}. This method has helped thousands of creators like you achieve incredible results in record time."
 
-## What is ${prompt}?
+[1:30-2:15] PROOF/BENEFITS
+"Just look at these results... [show examples]. Users report 5x faster completion times, professional-quality outputs, and significantly better engagement rates."
 
-${prompt} represents a fundamental concept that impacts various aspects of modern business and personal development. Let's break down the key components...
+[2:15-2:30] CALL TO ACTION
+"Ready to transform your ${prompt} experience? Check the link in the description to get started today. Don't forget to like this video and subscribe for more game-changing tips!"`,
 
-## Why ${prompt} Matters
+    'ad-copy': `🎯 Headline: Revolutionary ${prompt} Solution Changes Everything!
 
-The importance of ${prompt} cannot be overstated. Here are the main reasons why you should care:
+Tired of struggling with ${prompt}? You're not alone. Thousands of creators face the same challenges every day - wasted time, poor results, and endless frustration.
 
-1. **Competitive Advantage**: Understanding ${prompt} gives you an edge
-2. **Efficiency Gains**: Proper implementation saves time and resources
-3. **Long-term Success**: Building strong foundations for future growth
+But what if there was a better way?
 
-## Getting Started with ${prompt}
+Introducing the breakthrough solution that's transforming how people approach ${prompt}. Our innovative platform delivers:
 
-### Step 1: Assessment
-Begin by evaluating your current situation...
+✅ 10x faster results
+✅ Professional-quality output
+✅ Zero learning curve
+✅ Guaranteed satisfaction
 
-### Step 2: Planning
-Develop a strategic approach that aligns with your goals...
+"This completely changed my workflow. I can't imagine going back to the old way!" - Sarah K., Content Creator
 
-### Step 3: Implementation
-Execute your plan with careful attention to detail...
+⚡ LIMITED TIME: Get 50% off your first month when you sign up today!
 
-## Best Practices and Tips
+🚀 Join 10,000+ satisfied customers who've already transformed their ${prompt} experience.
 
-- Focus on quality over quantity
-- Stay updated with latest trends
-- Measure and optimize your results
-- Learn from industry experts
-
-## Common Mistakes to Avoid
-
-Many people make these critical errors when dealing with ${prompt}:
-- Rushing the process without proper planning
-- Ignoring fundamental principles
-- Failing to measure progress
-
-## Conclusion
-
-Mastering ${prompt} is a journey that requires dedication and continuous learning. By following the strategies outlined in this guide, you'll be well on your way to achieving your goals.
-
-Remember: consistency is key to long-term success.`
-    }
-
-    return fallbackContent[contentType] || `Generated content about: ${prompt}\n\nThis is a placeholder response. In a production environment, this would be generated by the OpenAI API.`
+👆 CLICK NOW - Offer expires in 24 hours!`
   }
+
+  return mockContent[contentType] || mockContent['social-post']
 }

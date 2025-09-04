@@ -15,8 +15,8 @@ export default {
         'text-secondary': 'hsl(220, 20%, 40%)',
       },
       fontSize: {
-        'display': ['3rem', { lineHeight: '1.2', fontWeight: '700' }],
-        'heading': ['1.5rem', { lineHeight: '1.3', fontWeight: '600' }],
+        'display': ['3rem', { lineHeight: '1', fontWeight: '700' }],
+        'heading': ['1.5rem', { lineHeight: '1.2', fontWeight: '600' }],
         'body': ['1rem', { lineHeight: '1.75' }],
       },
       borderRadius: {
@@ -33,8 +33,8 @@ export default {
         'card': '0 4px 12px hsla(220, 20%, 0%, 0.08)',
       },
       animation: {
-        'fade-in': 'fadeIn 0.2s ease-in-out',
-        'slide-up': 'slideUp 0.2s ease-in-out',
+        'fade-in': 'fadeIn 200ms ease-in-out',
+        'slide-up': 'slideUp 200ms ease-in-out',
       },
       keyframes: {
         fadeIn: {

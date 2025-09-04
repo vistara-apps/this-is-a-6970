@@ -1,80 +1,74 @@
 import React, { useState } from 'react'
-import { Sparkles, FileText, Video, Crown, Menu, X } from 'lucide-react'
-import Header from './components/Header'
-import Sidebar from './components/Sidebar'
-import Dashboard from './components/Dashboard'
-import ContentGenerator from './components/ContentGenerator'
-import ContentRepurposer from './components/ContentRepurposer'
-import SubscriptionModal from './components/SubscriptionModal'
+import { Header } from './components/Header'
+import { Sidebar } from './components/Sidebar'
+import { ContentGenerator } from './components/ContentGenerator'
+import { ContentRepurposer } from './components/ContentRepurposer'
+import { Dashboard } from './components/Dashboard'
+import { SubscriptionModal } from './components/SubscriptionModal'
+import { ToastProvider } from './components/ToastProvider'
 
 function App() {
-  const [activeTab, setActiveTab] = useState('dashboard')
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false)
+  const [activeView, setActiveView] = useState('dashboard')
   const [user, setUser] = useState({
-    email: 'user@example.com',
+    email: 'demo@contentspark.com',
     subscriptionPlan: 'basic',
-    contentGenerations: 3,
-    maxGenerations: 10
+    generationsUsed: 3,
+    generationsLimit: 10
   })
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false)
+
+  const handleViewChange = (view) => {
+    setActiveView(view)
+  }
 
   const handleUpgrade = () => {
-    setSubscriptionModalOpen(true)
+    setShowSubscriptionModal(true)
   }
 
   const handleSubscriptionSuccess = (plan) => {
     setUser(prev => ({
       ...prev,
       subscriptionPlan: plan,
-      maxGenerations: plan === 'pro' ? Infinity : 10
+      generationsLimit: plan === 'pro' ? Infinity : 10
     }))
-    setSubscriptionModalOpen(false)
+    setShowSubscriptionModal(false)
   }
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'dashboard':
-        return <Dashboard user={user} onUpgrade={handleUpgrade} />
-      case 'generate':
-        return <ContentGenerator user={user} setUser={setUser} />
-      case 'repurpose':
-        return <ContentRepurposer user={user} setUser={setUser} />
+  const renderActiveView = () => {
+    switch (activeView) {
+      case 'generator':
+        return <ContentGenerator user={user} setUser={setUser} onUpgrade={handleUpgrade} />
+      case 'repurposer':
+        return <ContentRepurposer user={user} setUser={setUser} onUpgrade={handleUpgrade} />
       default:
-        return <Dashboard user={user} onUpgrade={handleUpgrade} />
+        return <Dashboard user={user} onViewChange={handleViewChange} />
     }
   }
 
   return (
-    <div className="min-h-screen bg-bg">
-      <Header 
-        user={user} 
-        onUpgrade={handleUpgrade}
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-      />
-      
-      <div className="flex">
-        <Sidebar 
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          sidebarOpen={sidebarOpen}
-          setSidebarOpen={setSidebarOpen}
-        />
-        
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 lg:ml-64">
-          <div className="max-w-5xl mx-auto">
-            {renderContent()}
+    <ToastProvider>
+      <div className="min-h-screen bg-bg">
+        <div className="flex">
+          <Sidebar activeView={activeView} onViewChange={handleViewChange} />
+          <div className="flex-1 flex flex-col min-h-screen">
+            <Header user={user} onUpgrade={handleUpgrade} />
+            <main className="flex-1 p-4 sm:p-6 lg:p-8">
+              <div className="container">
+                {renderActiveView()}
+              </div>
+            </main>
           </div>
-        </main>
+        </div>
+        
+        {showSubscriptionModal && (
+          <SubscriptionModal
+            currentPlan={user.subscriptionPlan}
+            onClose={() => setShowSubscriptionModal(false)}
+            onSuccess={handleSubscriptionSuccess}
+          />
+        )}
       </div>
-
-      <SubscriptionModal
-        isOpen={subscriptionModalOpen}
-        onClose={() => setSubscriptionModalOpen(false)}
-        onSuccess={handleSubscriptionSuccess}
-        currentPlan={user.subscriptionPlan}
-      />
-    </div>
+    </ToastProvider>
   )
 }
 
