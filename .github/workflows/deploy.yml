@@ -17,11 +17,12 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '22'
+        node-version: '20'
         cache: 'npm'
         
     - name: Install dependencies
-      run: npm ci
+      run: |
+        npm ci --prefer-offline --no-audit
 
     - name: Debug environment
       run: |
@@ -30,6 +31,8 @@ jobs:
         echo "Working directory: $(pwd)"
         echo "Files in directory:"
         ls -la
+        echo "Package.json exists: $(test -f package.json && echo 'yes' || echo 'no')"
+        echo "Node modules exists: $(test -d node_modules && echo 'yes' || echo 'no')"
 
     - name: Build application
       run: npm run build
